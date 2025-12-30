@@ -28,10 +28,14 @@ jobs:
         # Create deployment directory
         mkdir -p deployment
         
-        # Copy all files
-        cp -r . deployment/
+        # Copy all files and directories (excluding deployment itself)
+        for item in * .*; do
+          if [ "$item" != "." ] && [ "$item" != ".." ] && [ "$item" != "deployment" ]; then
+            cp -r "$item" deployment/ 2>/dev/null || true
+          fi
+        done
         
-        # Remove excluded files
+        # Remove excluded files from deployment directory
         cd deployment
         rm -rf .env .vscode .github node_modules .git .gitignore .elasticbeanstalk
         rm -f *.log
