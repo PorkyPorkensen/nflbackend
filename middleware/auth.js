@@ -27,6 +27,9 @@ function getFormattedPrivateKey(rawKey) {
   return header + wrapped + footer;
 }
 
+// Exported flag for other modules to check Firebase init status
+let isFirebaseInitialized = false;
+
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   try {
@@ -37,7 +40,17 @@ if (!admin.apps.length) {
     console.log('FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
     console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
 
-    const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+    // Determine private key source. Prefer base64 env var for platforms that strip newlines.
+    let privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+    if (!privateKeyRaw && process.env.FIREBASE_PRIVATE_KEY_B64) {
+      try {
+        privateKeyRaw = Buffer.from(process.env.FIREBASE_PRIVATE_KEY_B64, 'base64').toString('utf8');
+        console.log('Decoded FIREBASE_PRIVATE_KEY_B64 to raw key');
+      } catch (e) {
+        console.error('Failed to decode FIREBASE_PRIVATE_KEY_B64:', e.message);
+      }
+    }
+
     console.log('Raw private key length:', privateKeyRaw?.length);
 
     // Use simplified, more robust formatting
@@ -56,6 +69,7 @@ if (!admin.apps.length) {
       credential: admin.credential.cert(serviceAccount),
       databaseURL: process.env.FIREBASE_DATABASE_URL || undefined
     });
+    isFirebaseInitialized = true;
     console.log('✅ Firebase Admin SDK initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
@@ -150,3 +164,6 @@ async function getOrCreateUser(decodedToken) {
 module.exports = {
   authenticateUser
 };
+
+// Also export init flag for health checks / other modules
+module.exports.isFirebaseInitialized = isFirebaseInitialized;
