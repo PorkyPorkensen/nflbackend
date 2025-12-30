@@ -14,43 +14,48 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
     - name: Create deployment package
       run: |
         echo "Creating deployment package..."
         
-        # Create a temporary directory for packaging
-        mkdir -p deploy_temp
-        cp -r . deploy_temp/
-        cd deploy_temp
+        # Create deployment directory
+        mkdir -p deployment
         
-        echo "Files before cleanup:"
-        ls -la
+        # Copy all files except excluded ones
+        rsync -av --exclude='.env' --exclude='.vscode/' --exclude='.github/' --exclude='node_modules/' --exclude='.git/' --exclude='*.log' --exclude='.elasticbeanstalk/' --exclude='.gitignore' ./ deployment/
         
-        # Remove files that should not be deployed (similar to .ebignore)
-        rm -rf .env .vscode .github node_modules .git .gitignore .elasticbeanstalk *.log
+        echo "Files in deployment package:"
+        ls -la deployment/
         
-        echo "Files after cleanup:"
-        ls -la
-        
-        # Create the deployment zip
+        # Create ZIP from deployment directory
+        cd deployment
         zip -r ../deploy.zip .
-        
-        echo "Deployment package created successfully"
         cd ..
-        rm -rf deploy_temp
         
-        echo "Final deploy.zip size:"
+        echo "Deployment package created:"
         ls -lh deploy.zip
 
     - name: Deploy to Elastic Beanstalk
-      uses: einaregilsson/beanstalk-deploy@v22
-      with:
-        application_name: nfl-backend
-        environment_name: nfl-prod
-        region: us-east-1
-        version_label: ${{ github.sha }}
-        version_description: ${{ github.sha }}
-        deployment_package: deploy.zip
-        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        use_existing_version_if_available: false
+      run: |
+        # Upload ZIP to S3
+        aws s3 cp deploy.zip s3://nfl-backend-deployments/${{ github.sha }}.zip
+        
+        # Create application version
+        aws elasticbeanstalk create-application-version \
+          --application-name nfl-backend \
+          --version-label ${{ github.sha }} \
+          --description "Deploy ${{ github.sha }}" \
+          --source-bundle S3Bucket=nfl-backend-deployments,S3Key=${{ github.sha }}.zip
+        
+        # Deploy to environment
+        aws elasticbeanstalk update-environment \
+          --application-name nfl-backend \
+          --environment-name nfl-prod \
+          --version-label ${{ github.sha }}
