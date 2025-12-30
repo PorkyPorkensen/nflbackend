@@ -4,12 +4,16 @@ const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load environment variables (optional for production)
-try {
-  dotenv.config();
-  console.log('✅ Environment variables loaded from .env file');
-} catch (error) {
-  console.log('ℹ️  No .env file found, using environment variables from system');
+// Load environment variables (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    dotenv.config();
+    console.log('✅ Environment variables loaded from .env file');
+  } catch (error) {
+    console.log('ℹ️  No .env file found, using environment variables from system');
+  }
+} else {
+  console.log('ℹ️  Production environment detected, using EB environment variables');
 }
 
 // Validate required environment variables
