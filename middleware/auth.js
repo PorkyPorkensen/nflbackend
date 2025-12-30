@@ -14,29 +14,38 @@ if (!admin.apps.length) {
     const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
     console.log('Raw private key length:', privateKeyRaw?.length);
     console.log('Raw private key start:', privateKeyRaw?.substring(0, 50));
+    console.log('Raw private key end:', privateKeyRaw?.substring(privateKeyRaw.length - 50));
 
-    // Try different ways to process the private key
+    // Check if it already has proper newlines
     let privateKey = privateKeyRaw;
     if (privateKeyRaw?.includes('\\n')) {
+      console.log('Converting \\n to newlines');
       privateKey = privateKeyRaw.replace(/\\n/g, '\n');
-      console.log('Replaced \\n with newlines');
     } else if (privateKeyRaw?.includes('\n')) {
       console.log('Private key already contains newlines');
     } else {
-      console.log('Private key does not contain newlines or \\n');
+      console.log('Private key has no newlines - this might be an issue');
     }
 
     console.log('Final private key length:', privateKey?.length);
     console.log('Final private key start:', privateKey?.substring(0, 50));
+    console.log('Final private key end:', privateKey?.substring(privateKey.length - 50));
+
+    // Ensure it starts and ends with the correct markers
+    if (!privateKey?.includes('-----BEGIN PRIVATE KEY-----')) {
+      console.error('Private key does not contain BEGIN marker');
+      throw new Error('Invalid private key format');
+    }
+    if (!privateKey?.includes('-----END PRIVATE KEY-----')) {
+      console.error('Private key does not contain END marker');
+      throw new Error('Invalid private key format');
+    }
 
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         privateKey: privateKey,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        // Optional fields - comment out if causing issues
-        // privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
-        // clientId: process.env.FIREBASE_CLIENT_ID,
       })
     });
     console.log('✅ Firebase Admin SDK initialized successfully');
