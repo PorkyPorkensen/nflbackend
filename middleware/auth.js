@@ -10,9 +10,23 @@ if (!admin.apps.length) {
     console.log('FIREBASE_PRIVATE_KEY start:', process.env.FIREBASE_PRIVATE_KEY?.substring(0, 50));
     console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
 
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    console.log('Processed private key length:', privateKey?.length);
-    console.log('Processed private key start:', privateKey?.substring(0, 50));
+    const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+    console.log('Raw private key length:', privateKeyRaw?.length);
+    console.log('Raw private key start:', privateKeyRaw?.substring(0, 50));
+
+    // Try different ways to process the private key
+    let privateKey = privateKeyRaw;
+    if (privateKeyRaw?.includes('\\n')) {
+      privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+      console.log('Replaced \\n with newlines');
+    } else if (privateKeyRaw?.includes('\n')) {
+      console.log('Private key already contains newlines');
+    } else {
+      console.log('Private key does not contain newlines or \\n');
+    }
+
+    console.log('Final private key length:', privateKey?.length);
+    console.log('Final private key start:', privateKey?.substring(0, 50));
 
     admin.initializeApp({
       credential: admin.credential.cert({
