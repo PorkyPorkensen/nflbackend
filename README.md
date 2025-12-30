@@ -64,35 +64,33 @@ npm run dev
 
 Server will run on `http://localhost:3001`
 
-## Step 6: Test API Endpoints
+## Step 7: Deploy to AWS Elastic Beanstalk
 
-- **Health Check:** `GET http://localhost:3001/api/health`
-- **Brackets:** `GET http://localhost:3001/api/brackets`
-- **Leaderboard:** `GET http://localhost:3001/api/leaderboard/2025`
+The application is configured for automatic deployment to AWS Elastic Beanstalk via GitHub Actions.
 
-## Common Issues & Solutions
+### Setup GitHub Secrets
 
-### "ENOTFOUND" Error
-- Check your `DB_HOST` in `.env`
-- Make sure RDS database is "Available" status
+1. Go to your GitHub repository settings
+2. Navigate to "Secrets and variables" > "Actions"
+3. Add the following secrets:
+   - `AWS_ACCESS_KEY_ID`: Your AWS access key
+   - `AWS_SECRET_ACCESS_KEY`: Your AWS secret access key
 
-### "ECONNREFUSED" Error
-- Database might still be starting up
-- Check AWS RDS security group allows connections on port 5432
+### Automatic Deployment
 
-### "28P01" Authentication Error
-- Check `DB_PASSWORD` matches what you set in AWS
-- Verify `DB_USER` is correct (usually "postgres")
+Once secrets are configured, pushes to the `main` branch will automatically deploy to Elastic Beanstalk.
 
-### Firebase Auth Errors
-- Download service account key from Firebase Console
-- Copy the private key exactly (including newlines)
+### Manual Deployment
 
-## Next Steps
-Once backend is running:
-1. Update frontend API configuration
-2. Test bracket submission
-3. Deploy to AWS (EC2 or Lambda)
+You can also trigger deployment manually:
+1. Go to the "Actions" tab in GitHub
+2. Select "Deploy to AWS Elastic Beanstalk" workflow
+3. Click "Run workflow"
+
+The application will be deployed to:
+- **Application Name**: nfl-bracket-backend
+- **Environment**: nfl-prod
+- **Region**: us-east-1
 
 ---
 **Need help?** Check the console logs - they contain detailed error information!
