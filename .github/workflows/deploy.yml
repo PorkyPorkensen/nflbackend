@@ -44,18 +44,22 @@ jobs:
 
     - name: Deploy to Elastic Beanstalk
       run: |
-        # Upload ZIP to S3
+        set -e  # Exit on any error
+        
+        echo "Uploading ZIP to S3..."
         aws s3 cp deploy.zip s3://nfl-backend-deployments/${{ github.sha }}.zip
         
-        # Create application version
+        echo "Creating application version..."
         aws elasticbeanstalk create-application-version \
           --application-name nfl-backend \
           --version-label ${{ github.sha }} \
           --description "Deploy ${{ github.sha }}" \
           --source-bundle S3Bucket=nfl-backend-deployments,S3Key=${{ github.sha }}.zip
         
-        # Deploy to environment
+        echo "Deploying to environment..."
         aws elasticbeanstalk update-environment \
           --application-name nfl-backend \
           --environment-name nfl-prod \
           --version-label ${{ github.sha }}
+        
+        echo "Deployment initiated successfully!"
