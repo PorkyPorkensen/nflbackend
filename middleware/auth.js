@@ -12,28 +12,31 @@ function formatPrivateKey(key) {
   key = key.replace(/\\n/g, '\n');
   
   // Handle EB's literal 'n' characters that replace actual newlines
-  // This happens when multiline values are stored as single lines
-  if (key.includes('-----BEGIN PRIVATE KEY-----n') && key.includes('n-----END PRIVATE KEY-----n')) {
-    // Replace the structural newlines (after BEGIN and before END)
-    key = key.replace('-----BEGIN PRIVATE KEY-----n', '-----BEGIN PRIVATE KEY-----\n');
-    key = key.replace('n-----END PRIVATE KEY-----n', '\n-----END PRIVATE KEY-----\n');
+  // EB stores multiline values as single lines with literal 'n' instead of \n
+  // We need to replace ALL 'n' characters with actual newlines first
+  if (key.includes('-----BEGIN PRIVATE KEY-----') && key.includes('-----END PRIVATE KEY-----')) {
+    // Replace ALL literal 'n' characters with actual newlines
+    key = key.replace(/n/g, '\n');
     
-    // Now handle the base64 content - it should be wrapped at 64 characters
-    const beginMarker = '-----BEGIN PRIVATE KEY-----\n';
-    const endMarker = '\n-----END PRIVATE KEY-----\n';
+    // Now clean up the formatting
+    const lines = key.split('\n').filter(line => line.trim() !== '');
     
-    const beginIndex = key.indexOf(beginMarker);
-    const endIndex = key.indexOf(endMarker);
+    // Extract the base64 content (everything between BEGIN and END markers)
+    const beginIndex = lines.findIndex(line => line.includes('-----BEGIN PRIVATE KEY-----'));
+    const endIndex = lines.findIndex(line => line.includes('-----END PRIVATE KEY-----'));
     
-    if (beginIndex !== -1 && endIndex !== -1) {
-      const base64Start = beginIndex + beginMarker.length;
-      const base64Content = key.substring(base64Start, endIndex);
+    if (beginIndex !== -1 && endIndex !== -1 && endIndex > beginIndex) {
+      // Get the base64 content lines
+      const base64Lines = lines.slice(beginIndex + 1, endIndex);
       
-      // Remove any existing newlines in base64 and re-wrap at 64 chars
-      const cleanBase64 = base64Content.replace(/\n/g, '');
-      const wrappedBase64 = cleanBase64.match(/.{1,64}/g).join('\n');
+      // Join all base64 content and remove any whitespace
+      const base64Content = base64Lines.join('').replace(/\s/g, '');
       
-      key = beginMarker + wrappedBase64 + endMarker;
+      // Wrap base64 at 64 characters per line
+      const wrappedBase64 = base64Content.match(/.{1,64}/g)?.join('\n') || base64Content;
+      
+      // Reconstruct with proper PEM format
+      key = `-----BEGIN PRIVATE KEY-----\n${wrappedBase64}\n-----END PRIVATE KEY-----\n`;
     }
   }
   
