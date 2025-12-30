@@ -16,18 +16,31 @@ jobs:
 
     - name: Create deployment package
       run: |
+        echo "Creating deployment package..."
+        
         # Create a temporary directory for packaging
         mkdir -p deploy_temp
         cp -r . deploy_temp/
         cd deploy_temp
         
+        echo "Files before cleanup:"
+        ls -la
+        
         # Remove files that should not be deployed (similar to .ebignore)
         rm -rf .env .vscode .github node_modules .git .gitignore .elasticbeanstalk *.log
         
+        echo "Files after cleanup:"
+        ls -la
+        
         # Create the deployment zip
         zip -r ../deploy.zip .
+        
+        echo "Deployment package created successfully"
         cd ..
         rm -rf deploy_temp
+        
+        echo "Final deploy.zip size:"
+        ls -lh deploy.zip
 
     - name: Deploy to Elastic Beanstalk
       uses: einaregilsson/beanstalk-deploy@v22
