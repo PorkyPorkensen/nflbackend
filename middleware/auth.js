@@ -3,8 +3,10 @@ const db = require('../config/database');
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
+  console.log('Firebase env vars:', Object.keys(process.env).filter(k => k.startsWith('FIREBASE')));
   console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
   console.log('FIREBASE_PRIVATE_KEY start:', process.env.FIREBASE_PRIVATE_KEY?.substring(0, 100));
+  console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
