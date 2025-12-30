@@ -4,8 +4,23 @@ const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (optional for production)
+try {
+  dotenv.config();
+  console.log('✅ Environment variables loaded from .env file');
+} catch (error) {
+  console.log('ℹ️  No .env file found, using environment variables from system');
+}
+
+// Validate required environment variables
+const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars);
+  console.error('Please set these environment variables in your Elastic Beanstalk configuration or .env file');
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -79,8 +94,9 @@ process.on('SIGTERM', async () => {
 app.listen(PORT, () => {
   console.log(`🏈 NFL Bracket Backend running on port ${PORT}`);
   console.log(`🗄️  Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`✅ All required environment variables are present`);
 });
 
 module.exports = app;
