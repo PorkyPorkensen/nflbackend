@@ -5,6 +5,9 @@ const db = require('../config/database');
 function formatPrivateKey(key) {
   if (!key) return key;
   
+  // Trim whitespace and normalize
+  key = key.trim();
+  
   // If already has newlines, return as is
   if (key.includes('\n')) {
     return key;
@@ -13,14 +16,21 @@ function formatPrivateKey(key) {
   const header = '-----BEGIN PRIVATE KEY-----';
   const footer = '-----END PRIVATE KEY-----';
   
-  if (!key.startsWith(header) || !key.endsWith(footer)) {
+  // Check if it contains the markers (not necessarily at start/end due to whitespace)
+  if (!key.includes(header) || !key.includes(footer)) {
     throw new Error('Invalid private key format: missing BEGIN or END markers');
   }
   
-  // Extract base64 part
-  const base64Start = header.length;
-  const base64End = key.length - footer.length;
-  const base64 = key.substring(base64Start, base64End).replace(/\s/g, '');
+  // Extract base64 part between markers
+  const headerIndex = key.indexOf(header);
+  const footerIndex = key.indexOf(footer);
+  
+  if (headerIndex === -1 || footerIndex === -1 || footerIndex <= headerIndex) {
+    throw new Error('Invalid private key format: markers not found in correct order');
+  }
+  
+  const base64Start = headerIndex + header.length;
+  const base64 = key.substring(base64Start, footerIndex).replace(/\s/g, '');
   
   // Wrap base64 at 64 characters per line
   const wrappedBase64 = base64.match(/.{1,64}/g).join('\n');
