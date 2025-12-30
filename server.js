@@ -49,10 +49,31 @@ try {
 }
 // Middleware
 app.use(helmet());
+
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://nflfrontend.vercel.app',
+  // CloudFront distribution used as API front (add yours if different)
+  'https://dt391zudkqfrk.cloudfront.net'
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://nflfrontend.vercel.app'],
-  credentials: true
+  origin: function(origin, callback) {
+    // allow requests with no origin (like server-to-server or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: origin not allowed'));
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS']
 }));
+
+// Ensure preflight OPTIONS requests are handled
+app.options('*', cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
