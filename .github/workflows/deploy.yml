@@ -17,7 +17,7 @@ jobs:
     - name: Deploy to Elastic Beanstalk
       uses: einaregilsson/beanstalk-deploy@v22
       with:
-        application_name: nfl-bracket-backend
+        application_name: nfl-backend
         environment_name: nfl-prod
         region: us-east-1
         version_label: ${{ github.sha }}
