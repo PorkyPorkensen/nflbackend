@@ -11,6 +11,12 @@ function formatPrivateKey(key) {
   // Handle escaped newlines from environment variables (replace \n with actual newlines)
   key = key.replace(/\\n/g, '\n');
   
+  // Handle literal 'n' characters that EB sometimes uses instead of escaped newlines
+  // This happens when multiline values are stored as single lines
+  if (key.includes('-----BEGIN PRIVATE KEY-----n') && key.includes('n-----END PRIVATE KEY-----n')) {
+    key = key.replace(/n/g, '\n');
+  }
+  
   // If already has newlines, return as is
   if (key.includes('\n')) {
     return key;
