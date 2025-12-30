@@ -8,6 +8,9 @@ function formatPrivateKey(key) {
   // Trim whitespace and normalize
   key = key.trim();
   
+  // Handle escaped newlines from environment variables (replace \n with actual newlines)
+  key = key.replace(/\\n/g, '\n');
+  
   // If already has newlines, return as is
   if (key.includes('\n')) {
     return key;
