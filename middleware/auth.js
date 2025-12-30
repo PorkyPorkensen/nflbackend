@@ -1,6 +1,34 @@
 const admin = require('firebase-admin');
 const db = require('../config/database');
 
+// Function to format private key properly
+function formatPrivateKey(key) {
+  if (!key) return key;
+  
+  // If already has newlines, return as is
+  if (key.includes('\n')) {
+    return key;
+  }
+  
+  const header = '-----BEGIN PRIVATE KEY-----';
+  const footer = '-----END PRIVATE KEY-----';
+  
+  if (!key.startsWith(header) || !key.endsWith(footer)) {
+    throw new Error('Invalid private key format: missing BEGIN or END markers');
+  }
+  
+  // Extract base64 part
+  const base64Start = header.length;
+  const base64End = key.length - footer.length;
+  const base64 = key.substring(base64Start, base64End).replace(/\s/g, '');
+  
+  // Wrap base64 at 64 characters per line
+  const wrappedBase64 = base64.match(/.{1,64}/g).join('\n');
+  
+  // Reconstruct with proper newlines
+  return `${header}\n${wrappedBase64}\n${footer}\n`;
+}
+
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   try {
@@ -16,15 +44,14 @@ if (!admin.apps.length) {
     console.log('Raw private key start:', privateKeyRaw?.substring(0, 50));
     console.log('Raw private key end:', privateKeyRaw?.substring(privateKeyRaw.length - 50));
 
-    // Check if it already has proper newlines
-    let privateKey = privateKeyRaw;
-    if (privateKeyRaw?.includes('\\n')) {
-      console.log('Converting \\n to newlines');
-      privateKey = privateKeyRaw.replace(/\\n/g, '\n');
-    } else if (privateKeyRaw?.includes('\n')) {
-      console.log('Private key already contains newlines');
-    } else {
-      console.log('Private key has no newlines - this might be an issue');
+    // Format the private key properly
+    let privateKey;
+    try {
+      privateKey = formatPrivateKey(privateKeyRaw);
+      console.log('Formatted private key successfully');
+    } catch (formatError) {
+      console.error('Failed to format private key:', formatError.message);
+      throw formatError;
     }
 
     console.log('Final private key length:', privateKey?.length);
