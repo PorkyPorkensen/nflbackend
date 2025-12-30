@@ -5,10 +5,11 @@ const db = require('../config/database');
 if (!admin.apps.length) {
   try {
     console.log('🔥 Initializing Firebase Admin SDK...');
-    console.log('Firebase env vars:', Object.keys(process.env).filter(k => k.startsWith('FIREBASE')));
-    console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
-    console.log('FIREBASE_PRIVATE_KEY start:', process.env.FIREBASE_PRIVATE_KEY?.substring(0, 50));
+    console.log('All env vars with FIREBASE:', Object.keys(process.env).filter(k => k.includes('FIREBASE')));
     console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+    console.log('FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
+    console.log('FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
+    console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
 
     const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
     console.log('Raw private key length:', privateKeyRaw?.length);
