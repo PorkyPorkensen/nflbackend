@@ -1,74 +1,30 @@
 const admin = require('firebase-admin');
 const db = require('../config/database');
 
-// Function to format private key properly
-function formatPrivateKey(key) {
-  if (!key) return key;
-  
-  // Trim whitespace and normalize
-  key = key.trim();
-  
-  // Handle escaped newlines from environment variables (replace \n with actual newlines)
-  key = key.replace(/\\n/g, '\n');
-  
-  // Handle EB's literal 'n' characters that replace actual newlines
-  // EB stores multiline values as single lines with literal 'n' instead of \n
-  // We need to replace ALL 'n' characters with actual newlines first
+// Simplified private key formatting helper
+function getFormattedPrivateKey(rawKey) {
+  if (!rawKey) return rawKey;
+
+  // Trim and replace escaped newlines
+  let key = rawKey.trim().replace(/\\n/g, '\n');
+
+  // If key already contains PEM markers, ensure newlines are present
   if (key.includes('-----BEGIN PRIVATE KEY-----') && key.includes('-----END PRIVATE KEY-----')) {
-    // Replace ALL literal 'n' characters with actual newlines
-    key = key.replace(/n/g, '\n');
-    
-    // Now clean up the formatting
-    const lines = key.split('\n').filter(line => line.trim() !== '');
-    
-    // Extract the base64 content (everything between BEGIN and END markers)
-    const beginIndex = lines.findIndex(line => line.includes('-----BEGIN PRIVATE KEY-----'));
-    const endIndex = lines.findIndex(line => line.includes('-----END PRIVATE KEY-----'));
-    
-    if (beginIndex !== -1 && endIndex !== -1 && endIndex > beginIndex) {
-      // Get the base64 content lines
-      const base64Lines = lines.slice(beginIndex + 1, endIndex);
-      
-      // Join all base64 content and remove any whitespace
-      const base64Content = base64Lines.join('').replace(/\s/g, '');
-      
-      // Wrap base64 at 64 characters per line
-      const wrappedBase64 = base64Content.match(/.{1,64}/g)?.join('\n') || base64Content;
-      
-      // Reconstruct with proper PEM format
-      key = `-----BEGIN PRIVATE KEY-----\n${wrappedBase64}\n-----END PRIVATE KEY-----\n`;
-    }
-  }
-  
-  // If already has newlines, return as is
-  if (key.includes('\n')) {
+    // If markers are present but the key is one long line, try to normalize spaces
+    // Ensure there is a final newline
+    if (!key.endsWith('\n')) key += '\n';
     return key;
   }
-  
-  const header = '-----BEGIN PRIVATE KEY-----';
-  const footer = '-----END PRIVATE KEY-----';
-  
-  // Check if it contains the markers (not necessarily at start/end due to whitespace)
-  if (!key.includes(header) || !key.includes(footer)) {
-    throw new Error('Invalid private key format: missing BEGIN or END markers');
-  }
-  
-  // Extract base64 part between markers
-  const headerIndex = key.indexOf(header);
-  const footerIndex = key.indexOf(footer);
-  
-  if (headerIndex === -1 || footerIndex === -1 || footerIndex <= headerIndex) {
-    throw new Error('Invalid private key format: markers not found in correct order');
-  }
-  
-  const base64Start = headerIndex + header.length;
-  const base64 = key.substring(base64Start, footerIndex).replace(/\s/g, '');
-  
-  // Wrap base64 at 64 characters per line
-  const wrappedBase64 = base64.match(/.{1,64}/g).join('\n');
-  
-  // Reconstruct with proper newlines
-  return `${header}\n${wrappedBase64}\n${footer}\n`;
+
+  // If the env var contains only base64 content, wrap it in PEM markers
+  const header = '-----BEGIN PRIVATE KEY-----\n';
+  const footer = '\n-----END PRIVATE KEY-----\n';
+  // Remove any accidental whitespace/newlines from base64 blob
+  const base64 = key.replace(/\s+/g, '');
+  // Insert newlines every 64 chars to form a valid PEM body
+  const wrapped = base64.match(/.{1,64}/g)?.join('\n') || base64;
+
+  return header + wrapped + footer;
 }
 
 // Initialize Firebase Admin SDK
@@ -83,39 +39,22 @@ if (!admin.apps.length) {
 
     const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
     console.log('Raw private key length:', privateKeyRaw?.length);
-    console.log('Raw private key start:', privateKeyRaw?.substring(0, 50));
-    console.log('Raw private key end:', privateKeyRaw?.substring(privateKeyRaw.length - 50));
 
-    // Format the private key properly
-    let privateKey;
-    try {
-      privateKey = formatPrivateKey(privateKeyRaw);
-      console.log('Formatted private key successfully');
-    } catch (formatError) {
-      console.error('Failed to format private key:', formatError.message);
-      throw formatError;
-    }
+    // Use simplified, more robust formatting
+    const privateKey = getFormattedPrivateKey(privateKeyRaw);
+    console.log('Formatted private key length:', privateKey?.length);
 
-    console.log('Final private key length:', privateKey?.length);
-    console.log('Final private key start:', privateKey?.substring(0, 50));
-    console.log('Final private key end:', privateKey?.substring(privateKey.length - 50));
+    // Build service account object expected by firebase-admin
+    const serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: privateKey,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    };
 
-    // Ensure it starts and ends with the correct markers
-    if (!privateKey?.includes('-----BEGIN PRIVATE KEY-----')) {
-      console.error('Private key does not contain BEGIN marker');
-      throw new Error('Invalid private key format');
-    }
-    if (!privateKey?.includes('-----END PRIVATE KEY-----')) {
-      console.error('Private key does not contain END marker');
-      throw new Error('Invalid private key format');
-    }
-
+    // Initialize Firebase app
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: privateKey,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      })
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: process.env.FIREBASE_DATABASE_URL || undefined
     });
     console.log('✅ Firebase Admin SDK initialized successfully');
   } catch (error) {

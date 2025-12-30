@@ -32,6 +32,13 @@ const PORT = process.env.PORT || 3001;
 // Database connection
 const db = require('./config/database');
 
+// Initialize Firebase Admin (ensure middleware runs and logs at startup)
+try {
+  require('./middleware/auth');
+  console.log('🔐 Firebase auth middleware module required (initialization attempted)');
+} catch (e) {
+  console.warn('⚠️  Could not require Firebase auth middleware at startup:', e && e.message);
+}
 // Middleware
 app.use(helmet());
 app.use(cors({
