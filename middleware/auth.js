@@ -3,26 +3,49 @@ const db = require('../config/database');
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
-  console.log('Firebase env vars:', Object.keys(process.env).filter(k => k.startsWith('FIREBASE')));
-  console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
-  console.log('FIREBASE_PRIVATE_KEY start:', process.env.FIREBASE_PRIVATE_KEY?.substring(0, 100));
-  console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      clientId: process.env.FIREBASE_CLIENT_ID,
-    })
-  });
+  try {
+    console.log('🔥 Initializing Firebase Admin SDK...');
+    console.log('Firebase env vars:', Object.keys(process.env).filter(k => k.startsWith('FIREBASE')));
+    console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
+    console.log('FIREBASE_PRIVATE_KEY start:', process.env.FIREBASE_PRIVATE_KEY?.substring(0, 50));
+    console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    console.log('Processed private key length:', privateKey?.length);
+    console.log('Processed private key start:', privateKey?.substring(0, 50));
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
+        privateKey: privateKey,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        clientId: process.env.FIREBASE_CLIENT_ID,
+      })
+    });
+    console.log('✅ Firebase Admin SDK initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
+    console.error('Full error:', error);
+    // Don't exit, just log the error - the app can still run without Firebase
+  }
 }
 
 // Authentication middleware
 const authenticateUser = async (req, res, next) => {
   try {
+    // Check if Firebase is initialized
+    if (!admin.apps.length) {
+      console.error('Firebase not initialized - cannot authenticate users');
+      return res.status(500).json({
+        success: false,
+        message: 'Authentication service unavailable',
+        error: 'The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.'
+      });
+    }
+
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -34,10 +57,10 @@ const authenticateUser = async (req, res, next) => {
 
     // Verify Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(token);
-    
+
     // Get or create user in our database
     const user = await getOrCreateUser(decodedToken);
-    
+
     // Add user info to request
     req.user = {
       firebaseUid: decodedToken.uid,
