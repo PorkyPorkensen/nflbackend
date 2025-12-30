@@ -58,7 +58,7 @@ jobs:
         aws elasticbeanstalk describe-applications --application-names nfl-backend
         
         echo "Checking Elastic Beanstalk environment..."
-        aws elasticbeanstalk describe-environments --application-name nfl-backend --environment-names nfl-prod
+        aws elasticbeanstalk describe-environments --application-name nfl-backend
         
         echo "Uploading ZIP to S3..."
         aws s3 cp deploy.zip s3://nfl-backend-deployments/${{ github.sha }}.zip
