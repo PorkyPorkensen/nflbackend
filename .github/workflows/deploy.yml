@@ -28,14 +28,18 @@ jobs:
         # Create deployment directory
         mkdir -p deployment
         
-        # Copy all files except excluded ones
-        rsync -av --exclude='.env' --exclude='.vscode/' --exclude='.github/' --exclude='node_modules/' --exclude='.git/' --exclude='*.log' --exclude='.elasticbeanstalk/' --exclude='.gitignore' ./ deployment/
+        # Copy all files
+        cp -r . deployment/
+        
+        # Remove excluded files
+        cd deployment
+        rm -rf .env .vscode .github node_modules .git .gitignore .elasticbeanstalk
+        rm -f *.log
         
         echo "Files in deployment package:"
-        ls -la deployment/
+        ls -la
         
-        # Create ZIP from deployment directory
-        cd deployment
+        # Create ZIP
         zip -r ../deploy.zip .
         cd ..
         
@@ -45,6 +49,12 @@ jobs:
     - name: Deploy to Elastic Beanstalk
       run: |
         set -e  # Exit on any error
+        
+        echo "Checking Elastic Beanstalk application..."
+        aws elasticbeanstalk describe-applications --application-names nfl-backend
+        
+        echo "Checking Elastic Beanstalk environment..."
+        aws elasticbeanstalk describe-environments --application-name nfl-backend --environment-names nfl-prod
         
         echo "Uploading ZIP to S3..."
         aws s3 cp deploy.zip s3://nfl-backend-deployments/${{ github.sha }}.zip
