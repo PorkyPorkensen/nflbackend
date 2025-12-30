@@ -11,10 +11,30 @@ function formatPrivateKey(key) {
   // Handle escaped newlines from environment variables (replace \n with actual newlines)
   key = key.replace(/\\n/g, '\n');
   
-  // Handle literal 'n' characters that EB sometimes uses instead of escaped newlines
+  // Handle EB's literal 'n' characters that replace actual newlines
   // This happens when multiline values are stored as single lines
   if (key.includes('-----BEGIN PRIVATE KEY-----n') && key.includes('n-----END PRIVATE KEY-----n')) {
-    key = key.replace(/n/g, '\n');
+    // Replace the structural newlines (after BEGIN and before END)
+    key = key.replace('-----BEGIN PRIVATE KEY-----n', '-----BEGIN PRIVATE KEY-----\n');
+    key = key.replace('n-----END PRIVATE KEY-----n', '\n-----END PRIVATE KEY-----\n');
+    
+    // Now handle the base64 content - it should be wrapped at 64 characters
+    const beginMarker = '-----BEGIN PRIVATE KEY-----\n';
+    const endMarker = '\n-----END PRIVATE KEY-----\n';
+    
+    const beginIndex = key.indexOf(beginMarker);
+    const endIndex = key.indexOf(endMarker);
+    
+    if (beginIndex !== -1 && endIndex !== -1) {
+      const base64Start = beginIndex + beginMarker.length;
+      const base64Content = key.substring(base64Start, endIndex);
+      
+      // Remove any existing newlines in base64 and re-wrap at 64 chars
+      const cleanBase64 = base64Content.replace(/\n/g, '');
+      const wrappedBase64 = cleanBase64.match(/.{1,64}/g).join('\n');
+      
+      key = beginMarker + wrappedBase64 + endMarker;
+    }
   }
   
   // If already has newlines, return as is
