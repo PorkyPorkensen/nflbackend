@@ -73,7 +73,7 @@ jobs:
         echo "Deploying to environment..."
         aws elasticbeanstalk update-environment \
           --application-name nfl-backend \
-          --environment-name nfl-prod \
+          --environment-name prod \
           --version-label ${{ github.sha }}
         
         echo "Deployment initiated successfully!"
