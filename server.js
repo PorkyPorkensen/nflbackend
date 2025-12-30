@@ -3,7 +3,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
+const admin = require('firebase-admin');
 
+
+
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: process.env.FIREBASE_DATABASE_URL,  // If using Realtime DB
+});
 // Load environment variables (only in development)
 if (process.env.NODE_ENV !== 'production') {
   try {
