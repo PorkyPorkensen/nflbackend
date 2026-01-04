@@ -40,6 +40,11 @@ if (!admin.apps.length) {
     console.log('FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
     console.log('FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
 
+    // Validate required Firebase credentials
+    if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY && !process.env.FIREBASE_PRIVATE_KEY_B64) {
+      throw new Error('Missing required Firebase credentials: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY (or FIREBASE_PRIVATE_KEY_B64)');
+    }
+
     // Determine private key source. Prefer base64 env var for platforms that strip newlines.
     let privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
     if (!privateKeyRaw && process.env.FIREBASE_PRIVATE_KEY_B64) {
@@ -48,7 +53,12 @@ if (!admin.apps.length) {
         console.log('Decoded FIREBASE_PRIVATE_KEY_B64 to raw key');
       } catch (e) {
         console.error('Failed to decode FIREBASE_PRIVATE_KEY_B64:', e.message);
+        throw e;
       }
+    }
+
+    if (!privateKeyRaw) {
+      throw new Error('FIREBASE_PRIVATE_KEY not provided in environment variables');
     }
 
     console.log('Raw private key length:', privateKeyRaw?.length);
@@ -74,20 +84,25 @@ if (!admin.apps.length) {
   } catch (error) {
     console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
     console.error('Full error:', error);
-    // Don't exit, just log the error - the app can still run without Firebase
+    isFirebaseInitialized = false;
+    // Re-throw to prevent the app from starting without Firebase
+    throw error;
   }
+} else {
+  console.log('✅ Firebase Admin SDK already initialized');
+  isFirebaseInitialized = true;
 }
 
 // Authentication middleware
 const authenticateUser = async (req, res, next) => {
   try {
     // Check if Firebase is initialized
-    if (!admin.apps.length) {
+    if (!isFirebaseInitialized || !admin.apps.length) {
       console.error('Firebase not initialized - cannot authenticate users');
       return res.status(500).json({
         success: false,
         message: 'Authentication service unavailable',
-        error: 'The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.'
+        error: 'Firebase Admin SDK is not initialized'
       });
     }
 
