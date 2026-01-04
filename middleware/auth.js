@@ -5,26 +5,37 @@ const db = require('../config/database');
 function getFormattedPrivateKey(rawKey) {
   if (!rawKey) return rawKey;
 
-  // Trim and replace escaped newlines
+  // Trim and replace escaped newlines with real newlines
   let key = rawKey.trim().replace(/\\n/g, '\n');
+  
+  console.log('Key starts with:', key.substring(0, 50));
+  console.log('Key contains BEGIN:', key.includes('-----BEGIN PRIVATE KEY-----'));
+  console.log('Key contains END:', key.includes('-----END PRIVATE KEY-----'));
 
-  // If key already contains PEM markers, ensure newlines are present
+  // If key already contains PEM markers, just ensure proper formatting
   if (key.includes('-----BEGIN PRIVATE KEY-----') && key.includes('-----END PRIVATE KEY-----')) {
-    // If markers are present but the key is one long line, try to normalize spaces
-    // Ensure there is a final newline
+    console.log('Key already has PEM markers, returning as-is with trailing newline');
     if (!key.endsWith('\n')) key += '\n';
     return key;
   }
 
-  // If the env var contains only base64 content, wrap it in PEM markers
-  const header = '-----BEGIN PRIVATE KEY-----\n';
-  const footer = '\n-----END PRIVATE KEY-----\n';
-  // Remove any accidental whitespace/newlines from base64 blob
-  const base64 = key.replace(/\s+/g, '');
-  // Insert newlines every 64 chars to form a valid PEM body
-  const wrapped = base64.match(/.{1,64}/g)?.join('\n') || base64;
+  // If here, the key might be base64-only OR formatted incorrectly
+  // Check if it looks like base64 (no PEM markers)
+  if (!key.includes('-----')) {
+    console.log('Key does not contain PEM markers, assuming base64 content');
+    const header = '-----BEGIN PRIVATE KEY-----\n';
+    const footer = '\n-----END PRIVATE KEY-----\n';
+    // Remove any accidental whitespace from base64 blob
+    const base64 = key.replace(/\s+/g, '');
+    // Insert newlines every 64 chars to form a valid PEM body
+    const wrapped = base64.match(/.{1,64}/g)?.join('\n') || base64;
+    return header + wrapped + footer;
+  }
 
-  return header + wrapped + footer;
+  // Fallback: return as-is with trailing newline
+  console.log('Key format unclear, returning with trailing newline');
+  if (!key.endsWith('\n')) key += '\n';
+  return key;
 }
 
 // Exported flag for other modules to check Firebase init status
