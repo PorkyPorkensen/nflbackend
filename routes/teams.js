@@ -13,7 +13,7 @@ router.get('/playoffs/:year', async (req, res) => {
     // Get hardcoded playoff teams from database (ordered by seed)
     const query = `
       SELECT 
-        id, name, abbreviation, location, conference, division, playoff_seed, logo_url as logo, primary_color, secondary_color, espn_team_id
+        espn_team_id, name, abbreviation, location, conference, division, playoff_seed, logo_url as logo, primary_color, secondary_color
       FROM nfl_teams
       WHERE playoff_seed IS NOT NULL
       ORDER BY CASE WHEN conference = 'American Football Conference' THEN 0 ELSE 1 END, playoff_seed ASC
