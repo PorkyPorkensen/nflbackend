@@ -58,37 +58,6 @@ router.get('/playoffs/:year', async (req, res) => {
     });
   }
 });
-        conferenceAbbr: team.conference === 'American Football Conference' ? 'AFC' : 'NFC',
-        playoffSeed: team.playoff_seed,
-        wins: 10 + (7 - team.playoff_seed),
-        losses: 7 - (7 - team.playoff_seed),
-        ties: 0,
-        record: `${10 + (7 - team.playoff_seed)}-${7 - (7 - team.playoff_seed)}`,
-        winPercent: 0.6 + (team.playoff_seed * 0.02),
-        differential: `+${50 + (team.playoff_seed * 10)}`
-      }));
-
-      const afcFallback = dbTeams.filter(t => t.conference === 'American Football Conference');
-      const nfcFallback = dbTeams.filter(t => t.conference === 'National Football Conference');
-
-      res.json({
-        success: true,
-        year: parseInt(year),
-        playoff_teams: dbTeams,
-        afc_teams: afcFallback,
-        nfc_teams: nfcFallback,
-        total_playoff_teams: dbTeams.length,
-        data_source: 'Database Fallback (2024 Playoff Teams)'
-      });
-    } catch (dbError) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch playoff teams from both ESPN and database',
-        error: error.message
-      });
-    }
-  }
-});
 
 // GET /api/teams - Get all NFL teams from database  
 router.get('/', async (req, res) => {
