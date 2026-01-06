@@ -44,6 +44,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://nflfrontend.vercel.app',
+  'https://www.sportsync.cc',
+  'https://sportsync.cc',
   // CloudFront distribution used as API front
   'https://dt391zudkqfrk.cloudfront.net'
 ];
